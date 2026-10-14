@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="x-paper-version" content="1.2">
+<meta name="x-paper-version" content="1.3">
 <meta name="robots" content="noindex">
 <title>Paper Formatter</title>
 <style>
@@ -52,10 +52,11 @@
     .sheet { width: auto; min-height: 0; padding: 1in; box-shadow: none; transform: none !important; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   }
 </style>
+<script src="jspdf.umd.min.js?v=2.5.2"></script>
 </head>
 <body>
 <div class="tools">
-  <h1>📝 Paper Formatter</h1>
+  <h1>📝 Paper Formatter <span id="ver" style="font-size:13px;font-weight:500;color:#888"></span></h1>
   <div class="row">
     <div><label for="name">Name</label><input id="name" autocomplete="off"></div>
     <div><label for="title">Title</label><input id="title" autocomplete="off"></div>
@@ -68,8 +69,6 @@
       <select id="font">
         <option value='"Times New Roman", Times, serif'>Times New Roman</option>
         <option value='Arial, Helvetica, sans-serif'>Arial</option>
-        <option value='Calibri, Carlito, sans-serif'>Calibri</option>
-        <option value='Georgia, serif'>Georgia</option>
       </select></div>
     <div><label for="hdr">Header size</label>
       <select id="hdr"><option>12</option><option>14</option><option selected>16</option><option>18</option><option>20</option><option>24</option></select></div>
@@ -89,10 +88,10 @@
     <label><input type="checkbox" id="boldDate"> Date</label>
   </div>
   <div class="btns">
-    <button id="print">🖨️ Print or Save as PDF</button>
+    <button id="print">📄 Make PDF to Print or Save</button>
     <button class="alt" id="clear">Clear</button>
   </div>
-  <div class="hint">On iPhone or iPad: tap Print, then tap the Share button in the print screen and pick Save to Files, or just print it. Open this page in Safari, not from a Home Screen icon, or the Print button may do nothing. Everything stays on this device; nothing is uploaded. Your name, settings and the paper are kept on this device, so they are still here next time you open the page; Clear empties the paper.</div>
+  <div class="hint">The button builds the PDF itself, so it prints exactly like the preview, with no web address or date on the page. On iPhone or iPad a share sheet opens: tap Print, or Save to Files. Everything stays on this device; nothing is uploaded. Your name, settings and the paper are kept on this device, so they are still here next time you open the page; Clear empties the paper.</div>
 </div>
 <div class="previewLabel">Preview</div>
 <div class="sheetWrap"><div class="sheet" id="sheet">
@@ -115,6 +114,7 @@
     var s = null;
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
     if (s) ids.forEach(function (k) { if (s[k] === undefined) return; var el = $(k); if (el.type === 'checkbox') el.checked = s[k]; else el.value = s[k]; });
+    ids.forEach(function (k) { var el = $(k); if (el.tagName === 'SELECT' && el.selectedIndex < 0) el.selectedIndex = 0; }); // a saved font that was dropped
     if (!$('date').value) $('date').value = today();
   }
   function render() {
@@ -154,16 +154,87 @@
       wrap.style.height = (sheet.offsetHeight * s + 40) + 'px';
     } else sheet.style.margin = '0 auto';
   }
+  $('ver').textContent = 'v' + document.querySelector('meta[name="x-paper-version"]').content;
   load(); render();
   ids.forEach(function (k) { $(k).addEventListener('input', function () { render(); save(); }); $(k).addEventListener('change', function () { render(); save(); }); });
   window.addEventListener('resize', fit);
+  // Build the PDF here instead of using the browser's print. iPhone Safari
+  // enlarges text when printing and stamps the URL, date and page count on the
+  // page, so a printed web page never matched the preview.
+  function makePdf() {
+    var J = window.jspdf.jsPDF;
+    var doc = new J({ unit: 'pt', format: 'letter' });
+    var PW = 612, PH = 792, M = 72, W = PW - 2 * M;
+    var fam = /Arial/.test($('font').value) ? 'helvetica' : 'times';
+    var hs = +$('hdr').value, bs = +$('body').value, lh = +$('lh').value;
+    var indent = $('indent').checked ? 36 : 0;
+    function font(size, bold) { doc.setFont(fam, bold ? 'bold' : 'normal'); doc.setFontSize(size); }
+    function wrap(text, width, firstWidth) {
+      var words = text.split(/\s+/).filter(Boolean), lines = [], cur = '';
+      words.forEach(function (w) {
+        var max = lines.length ? width : (firstWidth || width);
+        var tryLine = cur ? cur + ' ' + w : w;
+        if (cur && doc.getTextWidth(tryLine) > max) { lines.push(cur); cur = w; } else cur = tryLine;
+      });
+      if (cur) lines.push(cur);
+      return lines;
+    }
+    var name = $('name').value.trim(), title = $('title').value.trim(), date = $('date').value.trim();
+    var nTxt = name ? 'Name: ' + name : '', dTxt = date ? 'Date: ' + date : '';
+    var bN = $('boldName').checked, bT = $('bold').checked, bD = $('boldDate').checked;
+    var hl = hs * 1.15, y = M + hs * 0.9;
+    if ($('layout').value === 'center') {
+      [[nTxt, bN], [title, bT], [dTxt, bD]].forEach(function (it) {
+        if (!it[0]) return; font(hs, it[1]);
+        wrap(it[0], W).forEach(function (l) { doc.text(l, PW / 2, y, { align: 'center' }); y += hl; });
+      });
+    } else {
+      font(hs, bN); var nw = nTxt ? doc.getTextWidth(nTxt) : 0; if (nTxt) doc.text(nTxt, M, y);
+      font(hs, bD); var dw = dTxt ? doc.getTextWidth(dTxt) : 0; if (dTxt) doc.text(dTxt, PW - M, y, { align: 'right' });
+      // the title is centred on the page, and wraps if it would run into name or date
+      var gap = 12, room = W - 2 * (Math.max(nw, dw) + gap), rows = 1;
+      if (title) {
+        font(hs, bT);
+        var tl = wrap(title, Math.max(room, 72));
+        tl.forEach(function (l, i) { doc.text(l, PW / 2, y + i * hl, { align: 'center' }); });
+        rows = tl.length;
+      }
+      y += (rows - 1) * hl + hl;
+    }
+    // y is one header line past the last one; the body starts 24pt below the header
+    y = (nTxt || title || dTxt) ? (y - hl) + hs * 0.25 + 24 + bs * 0.9 : M + bs * 0.9;
+    var L = bs * lh, gapP = indent ? 0 : bs;
+    font(bs, false);
+    var first = true;
+    paragraphs().forEach(function (p) {
+      if (!first) y += gapP; first = false;
+      wrap(p, W, W - indent).forEach(function (l, i) {
+        if (y > PH - M) { doc.addPage(); y = M + bs * 0.9; font(bs, false); }
+        doc.text(l, M + (i === 0 ? indent : 0), y);
+        y += L;
+      });
+    });
+    return doc;
+  }
+  function paragraphs() {
+    var txt = $('text').value.replace(/\r/g, '');
+    var paras = /\n\s*\n/.test(txt) ? txt.split(/\n\s*\n/) : txt.split('\n');
+    return paras.map(function (p) { return p.replace(/\s*\n\s*/g, ' ').trim(); }).filter(Boolean);
+  }
   $('print').addEventListener('click', function () {
-    var old = document.title;
-    var t = [$('name').value.trim(), $('title').value.trim()].filter(Boolean).join(' - ');
-    if (t) document.title = t; // becomes the PDF file name
-    window.print();
-    setTimeout(function () { document.title = old; }, 1000);
+    var fname = ([$('name').value.trim(), $('title').value.trim()].filter(Boolean).join(' - ') || 'Paper').replace(/[\\/:*?"<>|]/g, '') + '.pdf';
+    if (!window.jspdf) { alert('The PDF maker did not load. Check the internet and reload, or this will use the phone\'s own print.'); window.print(); return; }
+    var blob = makePdf().output('blob');
+    var file = new File([blob], fname, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] }).catch(function () {});
+      return;
+    }
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
   });
+  window._makePdf = makePdf;
   $('clear').addEventListener('click', function () {
     if (!confirm('Clear the title and the paper? Name and settings stay.')) return;
     $('title').value = ''; $('text').value = ''; $('date').value = today(); render(); save();
