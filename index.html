@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-paper-version" content="1.0">
+<meta name="robots" content="noindex">
+<title>Paper Formatter</title>
+<style>
+  :root { --hdr: 16pt; --body: 12pt; --lh: 1.5; --font: "Times New Roman", Times, serif; --indent: 0.5in; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #eef0f3; color: #222; }
+  .tools { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; margin: 4px 0 12px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; color: #444; }
+  input, select, textarea { width: 100%; font-size: 16px; padding: 10px; border: 1px solid #c8ccd2; border-radius: 8px; background: #fff; }
+  textarea { min-height: 220px; resize: vertical; font-family: var(--font); }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 520px) { .row { grid-template-columns: 1fr 1fr; } .row > div:nth-child(2) { grid-column: 1 / -1; order: -1; } }
+  .row4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (min-width: 600px) { .row4 { grid-template-columns: repeat(4, 1fr); } }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 15px; }
+  .check input { width: auto; }
+  .btns { display: flex; gap: 10px; margin: 18px 0 8px; }
+  button { flex: 1; font-size: 17px; font-weight: 600; padding: 14px; border: 0; border-radius: 10px; background: #1f6feb; color: #fff; }
+  button.alt { background: #fff; color: #333; border: 1px solid #c8ccd2; flex: 0 0 auto; }
+  .hint { font-size: 13px; color: #666; line-height: 1.4; }
+  .previewLabel { max-width: 760px; margin: 18px auto 6px; padding: 0 16px; font-size: 13px; font-weight: 600; color: #555; }
+  .sheetWrap { overflow: hidden; padding: 0 16px 40px; }
+  /* the paper itself, letter size with 1in margins */
+  .sheet { width: 8.5in; min-height: 11in; margin: 0 auto; padding: 1in; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.15); color: #000; font-family: var(--font); transform-origin: top left; }
+  .hdr { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: var(--hdr); margin-bottom: 24pt; }
+  .hdr.center { flex-direction: column; align-items: center; gap: 4pt; }
+  .hdr .t { text-align: center; flex: 1; }
+  .hdr .n { text-align: left; } .hdr .d { text-align: right; }
+  .hdr.center .n, .hdr.center .d { text-align: center; }
+  .bold .t { font-weight: bold; }
+  .body p { font-size: var(--body); line-height: var(--lh); text-indent: var(--indent); margin: 0 0 var(--gap, 0); }
+  @page { size: letter; margin: 1in; }
+  @media print {
+    body { background: #fff; }
+    .tools, .previewLabel { display: none; }
+    .sheetWrap { padding: 0; overflow: visible; height: auto !important; }
+    .sheet { width: auto; min-height: 0; padding: 0; box-shadow: none; transform: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="tools">
+  <h1>📝 Paper Formatter</h1>
+  <div class="row">
+    <div><label for="name">Name</label><input id="name" autocomplete="off"></div>
+    <div><label for="title">Title</label><input id="title" autocomplete="off"></div>
+    <div><label for="date">Date</label><input id="date" autocomplete="off"></div>
+  </div>
+  <label for="text">Paper (paste or type it here, leave a blank line between paragraphs)</label>
+  <textarea id="text" placeholder="Paste the paper here..."></textarea>
+  <div class="row4">
+    <div><label for="font">Font</label>
+      <select id="font">
+        <option value='"Times New Roman", Times, serif'>Times New Roman</option>
+        <option value='Arial, Helvetica, sans-serif'>Arial</option>
+        <option value='Calibri, Carlito, sans-serif'>Calibri</option>
+        <option value='Georgia, serif'>Georgia</option>
+      </select></div>
+    <div><label for="hdr">Header size</label>
+      <select id="hdr"><option>12</option><option>14</option><option selected>16</option><option>18</option><option>20</option><option>24</option></select></div>
+    <div><label for="body">Body size</label>
+      <select id="body"><option>10</option><option>11</option><option selected>12</option><option>13</option><option>14</option></select></div>
+    <div><label for="lh">Spacing</label>
+      <select id="lh"><option value="1.15">Single</option><option value="1.5" selected>1.5</option><option value="2">Double</option></select></div>
+  </div>
+  <div class="row4">
+    <div><label for="layout">Header layout</label>
+      <select id="layout"><option value="row">One line</option><option value="center">Stacked, centered</option></select></div>
+  </div>
+  <label class="check"><input type="checkbox" id="indent" checked> Indent the first line of each paragraph</label>
+  <label class="check"><input type="checkbox" id="bold"> Bold title</label>
+  <div class="btns">
+    <button id="print">🖨️ Print or Save as PDF</button>
+    <button class="alt" id="clear">Clear</button>
+  </div>
+  <div class="hint">On iPhone or iPad: tap Print, then tap the Share button in the print screen and pick Save to Files, or just print it. Open this page in Safari, not from a Home Screen icon, or the Print button may do nothing. Everything stays on this device; nothing is uploaded.</div>
+</div>
+<div class="previewLabel">Preview</div>
+<div class="sheetWrap"><div class="sheet" id="sheet">
+  <div class="hdr" id="hdrBox"><span class="n" id="pName"></span><span class="t" id="pTitle"></span><span class="d" id="pDate"></span></div>
+  <div class="body" id="pBody"></div>
+</div></div>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var ids = ['name','title','date','text','font','hdr','body','lh','layout','indent','bold'];
+  var KEY = 'paper-formatter-v1';
+  var today = function () { var d = new Date(); return (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2); };
+
+  function save() {
+    var s = {};
+    ids.forEach(function (k) { var el = $(k); s[k] = el.type === 'checkbox' ? el.checked : el.value; });
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+  }
+  function load() {
+    var s = null;
+    try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+    if (s) ids.forEach(function (k) { if (s[k] === undefined) return; var el = $(k); if (el.type === 'checkbox') el.checked = s[k]; else el.value = s[k]; });
+    if (!$('date').value) $('date').value = today();
+  }
+  function render() {
+    var r = document.documentElement.style;
+    r.setProperty('--font', $('font').value);
+    r.setProperty('--hdr', $('hdr').value + 'pt');
+    r.setProperty('--body', $('body').value + 'pt');
+    r.setProperty('--lh', $('lh').value);
+    r.setProperty('--indent', $('indent').checked ? '0.5in' : '0');
+    // a blank-line gap between paragraphs only when they are not indented
+    r.setProperty('--gap', $('indent').checked ? '0' : '1em');
+    var name = $('name').value.trim(), date = $('date').value.trim();
+    $('pName').textContent = name ? 'Name: ' + name : '';
+    $('pTitle').textContent = $('title').value.trim();
+    $('pDate').textContent = date ? 'Date: ' + date : '';
+    $('hdrBox').className = 'hdr' + ($('layout').value === 'center' ? ' center' : '') + ($('bold').checked ? ' bold' : '');
+    var body = $('pBody'); body.innerHTML = '';
+    var txt = $('text').value.replace(/\r/g, '');
+    // a blank line splits paragraphs; if there are none, each single line break is a paragraph
+    var paras = /\n\s*\n/.test(txt) ? txt.split(/\n\s*\n/) : txt.split('\n');
+    paras.forEach(function (p) {
+      p = p.replace(/\s*\n\s*/g, ' ').trim();
+      if (!p) return;
+      var el = document.createElement('p'); el.textContent = p; body.appendChild(el);
+    });
+    fit();
+  }
+  // shrink the preview sheet to fit narrow screens (print is unaffected)
+  function fit() {
+    var sheet = $('sheet'), wrap = sheet.parentNode;
+    sheet.style.transform = ''; wrap.style.height = '';
+    var avail = wrap.clientWidth - 32, w = sheet.offsetWidth;
+    if (avail < w) {
+      var s = avail / w;
+      sheet.style.transform = 'scale(' + s + ')';
+      sheet.style.margin = '0';
+      wrap.style.height = (sheet.offsetHeight * s + 40) + 'px';
+    } else sheet.style.margin = '0 auto';
+  }
+  load(); render();
+  ids.forEach(function (k) { $(k).addEventListener('input', function () { render(); save(); }); $(k).addEventListener('change', function () { render(); save(); }); });
+  window.addEventListener('resize', fit);
+  $('print').addEventListener('click', function () {
+    var old = document.title;
+    var t = [$('name').value.trim(), $('title').value.trim()].filter(Boolean).join(' - ');
+    if (t) document.title = t; // becomes the PDF file name
+    window.print();
+    setTimeout(function () { document.title = old; }, 1000);
+  });
+  $('clear').addEventListener('click', function () {
+    if (!confirm('Clear the title and the paper? Name and settings stay.')) return;
+    $('title').value = ''; $('text').value = ''; $('date').value = today(); render(); save();
+  });
+})();
+</script>
+</body></html>
