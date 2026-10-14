@@ -2,12 +2,15 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="x-paper-version" content="1.1">
+<meta name="x-paper-version" content="1.2">
 <meta name="robots" content="noindex">
 <title>Paper Formatter</title>
 <style>
   :root { --hdr: 16pt; --body: 12pt; --lh: 1.5; --font: "Times New Roman", Times, serif; --indent: 0.5in; }
   * { box-sizing: border-box; }
+  /* iPhone Safari enlarges text on its own (worst when printing), so the printout
+     came out bigger than the preview. Keep every size exactly as set. */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #eef0f3; color: #222; }
   .tools { max-width: 760px; margin: 0 auto; padding: 16px; }
   h1 { font-size: 22px; margin: 4px 0 12px; }
@@ -39,12 +42,14 @@
   .boldRow label { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 15px; font-weight: 400; color: #222; }
   .boldRow input { width: auto; }
   .body p { font-size: var(--body); line-height: var(--lh); text-indent: var(--indent); margin: 0 0 var(--gap, 0); }
-  @page { size: letter; margin: 1in; }
+  /* margin 0 leaves the browser no room to print its own URL/date/page footer;
+     the 1in margin is the sheet's padding instead, repeated on every page */
+  @page { size: letter; margin: 0; }
   @media print {
     body { background: #fff; }
     .tools, .previewLabel { display: none; }
     .sheetWrap { padding: 0; overflow: visible; height: auto !important; }
-    .sheet { width: auto; min-height: 0; padding: 0; box-shadow: none; transform: none !important; }
+    .sheet { width: auto; min-height: 0; padding: 1in; box-shadow: none; transform: none !important; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   }
 </style>
 </head>
