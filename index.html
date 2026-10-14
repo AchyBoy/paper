@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="x-paper-version" content="1.0">
+<meta name="x-paper-version" content="1.1">
 <meta name="robots" content="noindex">
 <title>Paper Formatter</title>
 <style>
@@ -33,7 +33,11 @@
   .hdr .t { text-align: center; flex: 1; }
   .hdr .n { text-align: left; } .hdr .d { text-align: right; }
   .hdr.center .n, .hdr.center .d { text-align: center; }
-  .bold .t { font-weight: bold; }
+  .bn .n, .bt .t, .bd .d { font-weight: bold; }
+  .boldRow { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin-top: 12px; font-size: 15px; }
+  .boldRow b { font-size: 13px; color: #444; }
+  .boldRow label { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 15px; font-weight: 400; color: #222; }
+  .boldRow input { width: auto; }
   .body p { font-size: var(--body); line-height: var(--lh); text-indent: var(--indent); margin: 0 0 var(--gap, 0); }
   @page { size: letter; margin: 1in; }
   @media print {
@@ -74,12 +78,16 @@
       <select id="layout"><option value="row">One line</option><option value="center">Stacked, centered</option></select></div>
   </div>
   <label class="check"><input type="checkbox" id="indent" checked> Indent the first line of each paragraph</label>
-  <label class="check"><input type="checkbox" id="bold"> Bold title</label>
+  <div class="boldRow"><b>Bold:</b>
+    <label><input type="checkbox" id="boldName"> Name</label>
+    <label><input type="checkbox" id="bold"> Title</label>
+    <label><input type="checkbox" id="boldDate"> Date</label>
+  </div>
   <div class="btns">
     <button id="print">🖨️ Print or Save as PDF</button>
     <button class="alt" id="clear">Clear</button>
   </div>
-  <div class="hint">On iPhone or iPad: tap Print, then tap the Share button in the print screen and pick Save to Files, or just print it. Open this page in Safari, not from a Home Screen icon, or the Print button may do nothing. Everything stays on this device; nothing is uploaded.</div>
+  <div class="hint">On iPhone or iPad: tap Print, then tap the Share button in the print screen and pick Save to Files, or just print it. Open this page in Safari, not from a Home Screen icon, or the Print button may do nothing. Everything stays on this device; nothing is uploaded. Your name, settings and the paper are kept on this device, so they are still here next time you open the page; Clear empties the paper.</div>
 </div>
 <div class="previewLabel">Preview</div>
 <div class="sheetWrap"><div class="sheet" id="sheet">
@@ -89,7 +97,7 @@
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var ids = ['name','title','date','text','font','hdr','body','lh','layout','indent','bold'];
+  var ids = ['name','title','date','text','font','hdr','body','lh','layout','indent','bold','boldName','boldDate'];
   var KEY = 'paper-formatter-v1';
   var today = function () { var d = new Date(); return (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2); };
 
@@ -117,7 +125,7 @@
     $('pName').textContent = name ? 'Name: ' + name : '';
     $('pTitle').textContent = $('title').value.trim();
     $('pDate').textContent = date ? 'Date: ' + date : '';
-    $('hdrBox').className = 'hdr' + ($('layout').value === 'center' ? ' center' : '') + ($('bold').checked ? ' bold' : '');
+    $('hdrBox').className = 'hdr' + ($('layout').value === 'center' ? ' center' : '') + ($('boldName').checked ? ' bn' : '') + ($('bold').checked ? ' bt' : '') + ($('boldDate').checked ? ' bd' : '');
     var body = $('pBody'); body.innerHTML = '';
     var txt = $('text').value.replace(/\r/g, '');
     // a blank line splits paragraphs; if there are none, each single line break is a paragraph
